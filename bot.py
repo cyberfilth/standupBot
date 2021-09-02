@@ -2,7 +2,8 @@ import slack
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from flask import Flask, request, Response
+from flask import Flask
+from slack.web.client import WebClient
 from slackeventsapi import SlackEventAdapter
 
 # Message counter, increments after each answer
@@ -17,9 +18,9 @@ load_dotenv(dotenv_path=env_path)
 app = Flask(__name__)
 
 # Channel used for testing
-testChannel = ' '
+testChannel = ''
 # Username used for testing
-testUser = ' '
+testUser = ''
 
 # Redirect all Events to this URL
 slack_event_adapter = SlackEventAdapter(
@@ -36,14 +37,14 @@ global ans1
 global ans2
 global ans3
 
-
+# Slack token
 client = slack.WebClient(token=os.environ['SLACK_TOKEN_'])
+# Bot ID, to stop it talking to itself
 BOT_ID = client.api_call("auth.test")['user_id']
 
-# Post the welcome message
-client.chat_postMessage(channel=testChannel, text=intro + question1)
-
 # Event endpoint
+
+
 @slack_event_adapter.on('message')
 def message(payload):
     event = payload.get('event', {})
@@ -57,7 +58,7 @@ def message(payload):
             client.chat_postMessage(channel=channel_id, text=question2)
             global ans1
             ans1 = answer
-            msgCounter += 1 
+            msgCounter += 1
         elif msgCounter == 2:
             client.chat_postMessage(channel=channel_id, text=question3)
             global ans2
@@ -67,14 +68,28 @@ def message(payload):
             client.chat_postMessage(channel=channel_id, text=outro)
             global ans3
             ans3 = answer
-            # Post the results
-            client.chat_postMessage(channel=testUser, text=ans1 + '\n' + ans2 + '\n' + ans3 )
+           
+            # Get display name
+            r = client.users_info(user=user_id)
+            dispName = r['user']['profile']['display_name']
+
+             # Post the results
+            if ans2.lower() and ans3.lower() !='no':
+                client.chat_postMessage(channel=testChannel, text=':robot_face: *' + dispName + '* posted an update for *Daily Standup*\n' + '*' + question1 + '*' + '\n>' + ans1 + '\n' + '*' + question2 +'*' + '\n>' + ans2 + '\n' + '*' + question3 + '*' + '\n>' + ans3)
+            elif ans2.lower() != 'no' and ans3.lower() == 'no':
+                client.chat_postMessage(channel=testChannel, text=':robot_face: *' + dispName + '* posted an update for *Daily Standup*\n' + '*' + question1 + '*' + '\n>' + ans1 + '\n' + '*' + question2 +'*' + '\n>' + ans2)
+            else:
+                client.chat_postMessage(channel=testChannel, text=':robot_face: *' + dispName + '* posted an update for *Daily Standup*\n' + '*' + question1 + '*' + '\n>' + ans1)
+
             # Increment the counter once more to break the loop
             msgCounter += 1
         else:
             return
 
-        
+
+# Post the welcome message
+client.chat_postMessage(channel=testUser, text=intro + question1)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
