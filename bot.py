@@ -2,7 +2,6 @@ import slack
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-# Flask is only used for testing locally
 from flask import Flask
 from slackeventsapi import SlackEventAdapter
 # File containing users
@@ -20,7 +19,7 @@ load_dotenv(dotenv_path=env_path)
 app = Flask(__name__)
 
 # Output channel used for testing
-testChannel = ''
+testChannel = '#bot-testing'
 
 # Redirect all Events to this URL
 slack_event_adapter = SlackEventAdapter(
@@ -31,6 +30,8 @@ intro = '\n:alarm_clock: It\'s time for the *daily standup*.\nPlease share what 
 question1 = 'What will you do today?'
 question2 = 'Anything blocking your progress?'
 question3 = 'Anything you would like the team to know?'
+# TO DO
+# Randomly select outro from an array of responses
 outro = 'Awesome! Have a great day  :thumbsup:'
 
 # Slack token
@@ -50,10 +51,10 @@ def message(payload):
     if BOT_ID != user_id:
 
         # for respondentID, loop through dictionary until user_id matches Username        
-        for k in range(2):
+        for k in usualSuspects:
             print('getting id')
-            if user_id == usualSuspects[k]['userName']:
-                thisID = usualSuspects[k]['id']
+            if user_id == k['userName']:
+                thisID = k['id']
  
 
         if usualSuspects[thisID]['msgCounter'] == 1:
@@ -89,10 +90,11 @@ def message(payload):
             return
 
 # Reset each msgCounter at program start
-for x in range(2):
-    usualSuspects[x]['msgCounter'] == 1
-    client.chat_postMessage(channel=usualSuspects[x]['userName'], text=intro + question1)
+for x in usualSuspects:
+    x['msgCounter'] == 1
+    client.chat_postMessage(channel=x['userName'], text=intro + question1)
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+#    app.run(debug=False)
+    app.run(host="92.63.139.230", debug=False, port="3000")
